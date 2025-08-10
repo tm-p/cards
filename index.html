@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flashcards</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f7fa;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100vh;
+  margin: 0;
+  padding-top: 20px;
+}
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+}
+.question, .answer {
+  font-size: 1.4em;
+  margin-bottom: 20px;
+}
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 1em;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.show-btn { background-color: #007bff; color: white; }
+.show-btn:hover { background-color: #0056b3; }
+.again-btn { background-color: #e74c3c; color: white; }
+.again-btn:hover { background-color: #c0392b; }
+.hard-btn { background-color: #e67e22; color: white; }
+.hard-btn:hover { background-color: #d35400; }
+.good-btn { background-color: #27ae60; color: white; }
+.good-btn:hover { background-color: #1e8449; }
+.easy-btn { background-color: #3498db; color: white; }
+.easy-btn:hover { background-color: #2e86c1; }
+</style>
+</head>
+<body>
+
+<!-- Password Screen -->
+<div class="card" id="passwordScreen">
+  <h2>Enter Password</h2>
+  <input type="password" id="passwordInput" style="padding:8px; width:80%; font-size:1em; margin-bottom:10px;" />
+  <br>
+  <button onclick="checkPassword()" class="show-btn">Submit</button>
+  <p id="errorMsg" style="color:red; display:none;">Incorrect password</p>
+</div>
+
+<!-- Flashcard Screen -->
+<div class="card" id="flashcardScreen" style="display:none;">
+  <div class="question" id="question">Loading...</div>
+  <div class="answer" id="answer" style="display:none;"></div>
+  <div id="buttons"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+  const VALUE = "U2FsdGVkX19nRQB6H3eF11M/3ZGcpmUMQV+Ii62f0pM0qSJpZmI/0XLBQrL5uurhe2/yvpqKDX9v3biAGfFStCCRX4b5x50Hn+aOL3o5728VQHCRZyAj/6wdLwbs6C/XPQLb3wPc8jP8gfYS7KCb1aWAWoe3njBdl85RGTiHgAhNOO/XMeEI+r0RpA0WA4A1Wkq1bng+EPuu9rAg1S7ytQ==";
+
+  let queue = [];
+  let currentCard = null;
+
+  function loadTimings() {
+    return JSON.parse(localStorage.getItem("flashcardTimings") || "{}");
+  }
+
+  function saveTimingLocally(cardId, lastReviewed, nextReview) {
+    let timings = loadTimings();
+    timings[cardId] = { lastReviewed, nextReview };
+    localStorage.setItem("flashcardTimings", JSON.stringify(timings));
+  }
+
+  function sortByNextReview(cards, timings) {
+    return cards.sort((a, b) => {
+      let aTime = timings[a.id]?.nextReview ? new Date(timings[a.id].nextReview) : new Date(0);
+      let bTime = timings[b.id]?.nextReview ? new Date(timings[b.id].nextReview) : new Date(0);
+      return aTime - bTime;
+    });
+  }
+
+  function loadCards(url) {
+    Papa.parse(url, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        const timings = loadTimings();
+        queue = results.data
+          .filter(row => row.question && row.answer)
+          .map(row => ({
+            id: row.id,
+            q: row.question,
+            a: row.answer
+          }));
+
+        queue = sortByNextReview(queue, timings);
+
+        if (queue.length > 0) {
+          nextCard();
+        } else {
+          document.getElementById('question').textContent = "No cards found.";
+        }
+      },
+      error: function(err) {
+        document.getElementById('question').textContent = "Error loading data.";
+        console.error(err);
+      }
+    });
+  }
+
+  function nextCard() {
+    if (queue.length === 0) {
+      document.getElementById('question').textContent = "You're done!";
+      document.getElementById('answer').style.display = 'none';
+      document.getElementById('buttons').innerHTML = '';
+      return;
+    }
+    currentCard = queue.shift();
+    document.getElementById('question').textContent = currentCard.q;
+    document.getElementById('answer').style.display = 'none';
+    document.getElementById('buttons').innerHTML =
+      '<button class="show-btn" onclick="showAnswer()">Show Answer</button>';
+  }
+
+  function showAnswer() {
+    const rawAnswer = currentCard.a;
+    const lines = rawAnswer.split('\n');
+    let inList = false;
+    let html = '';
+
+    lines.forEach(line => {
+      if (line.trim().startsWith('-')) {
+        if (!inList) {
+          html += '<ul style="text-align:left; padding-left:20px; margin:8px 0;">';
+          inList = true;
+        }
+        html += '<li>' + line.trim().substring(1).trim() + '</li>';
+      } else {
+        if (inList) {
+          html += '</ul>';
+          inList = false;
+        }
+        html += '<p style="text-align:left; margin:6px 0;">' + line + '</p>';
+      }
+    });
+    if (inList) html += '</ul>';
+
+    const answerDiv = document.getElementById('answer');
+    answerDiv.innerHTML = html;
+    answerDiv.style.display = 'block';
+
+    document.getElementById('buttons').innerHTML = `
+      <button class="again-btn" onclick="rateCard('again')">Again</button>
+      <button class="hard-btn" onclick="rateCard('hard')">Hard</button>
+      <button class="good-btn" onclick="rateCard('good')">Good</button>
+      <button class="easy-btn" onclick="rateCard('easy')">Easy</button>
+    `;
+  }
+
+  function rateCard(rating) {
+    const now = new Date().toISOString();
+    let nextReview;
+
+    if (rating === 'again') {
+      nextReview = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      queue.splice(1, 0, currentCard);
+    } else if (rating === 'hard') {
+      nextReview = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+      queue.splice(3, 0, currentCard);
+    } else if (rating === 'good') {
+      nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      queue.splice(queue.length - 1, 0, currentCard);
+    } else {
+      nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      queue.splice(queue.length - 1, 0, currentCard);
+    }
+
+    saveTimingLocally(currentCard.id, now, nextReview);
+    nextCard();
+  }
+
+  function checkPassword() {
+    const entered = document.getElementById('passwordInput').value;
+    const bytes = CryptoJS.AES.decrypt(VALUE, entered);
+    const url = bytes.toString(CryptoJS.enc.Utf8);
+
+    if (url.includes("google")) {
+      document.getElementById('passwordScreen').style.display = 'none';
+      document.getElementById('flashcardScreen').style.display = 'block';
+      loadCards(url);
+    } else {
+      document.getElementById('errorMsg').style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>
