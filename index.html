@@ -40,6 +40,8 @@ button {
 }
 .show-btn { background-color: #007bff; color: white; }
 .show-btn:hover { background-color: #0056b3; }
+.ignore-btn { background-color: #17a2b8; color: white; }
+.ignore-btn:hover { background-color: #17a2b8; }
 .again-btn { background-color: #e74c3c; color: white; }
 .again-btn:hover { background-color: #c0392b; }
 .hard-btn { background-color: #e67e22; color: white; }
@@ -164,6 +166,7 @@ button {
     answerDiv.style.display = 'block';
 
     document.getElementById('buttons').innerHTML = `
+      <button class="ignore-btn" onclick="rateCard('ignore')">Ignore</button>
       <button class="again-btn" onclick="rateCard('again')">Again</button>
       <button class="hard-btn" onclick="rateCard('hard')">Hard</button>
       <button class="good-btn" onclick="rateCard('good')">Good</button>
@@ -173,23 +176,31 @@ button {
 
   function rateCard(rating) {
     const now = new Date().toISOString();
+    let resortCards = true;
     let nextReview;
 
-    if (rating === 'again') {
-      nextReview = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    if (rating == 'ignore') {
+      nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
+      // queue.splice(1, 0, currentCard); 
+    } else if (rating === 'again') {
+      // nextReview = new Date(Date.now() + 1 * 1000).toISOString();
       queue.splice(1, 0, currentCard);
+      resortCards = false;
     } else if (rating === 'hard') {
-      nextReview = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
-      queue.splice(3, 0, currentCard);
+      nextReview = new Date(Date.now() + 4 * 60 * 1000).toISOString();
+      // queue.splice(3, 0, currentCard);
     } else if (rating === 'good') {
       nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      queue.splice(queue.length - 1, 0, currentCard);
+      // queue.splice(queue.length - 1, 0, currentCard);
     } else {
       nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      queue.splice(queue.length - 1, 0, currentCard);
+      // queue.splice(queue.length - 1, 0, currentCard);
     }
 
     saveTimingLocally(currentCard.id, now, nextReview);
+    if (resortCards) {
+      queue = sortByNextReview(queue, loadTimings());
+    }
     nextCard();
   }
 
