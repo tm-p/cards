@@ -183,7 +183,7 @@ button {
       nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
       // queue.splice(1, 0, currentCard); 
     } else if (rating === 'again') {
-      nextReview = new Date(Date.now() + 1 * 1000).toISOString();
+      // nextReview = new Date(Date.now() + 1 * 1000).toISOString();
       queue.splice(1, 0, currentCard);
       resortCards = false;
     } else if (rating === 'hard') {
@@ -198,7 +198,9 @@ button {
     }
 
     saveTimingLocally(currentCard.id, now, nextReview);
-    queue = sortByNextReview(queue, loadTimings());
+    if (resortCards) {
+      queue = sortByNextReview(queue, loadTimings());
+    }
     nextCard();
   }
 
