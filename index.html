@@ -63,6 +63,19 @@ button {
   <p id="errorMsg" style="color:red; display:none;">Incorrect password</p>
 </div>
 
+<!-- Choice Screen -->
+<div class="card" id="choiceScreen" style="display:none;">
+  <h2>Choose Mode</h2>
+  <button class="show-btn" onclick="chooseMode('questions')">Questions</button>
+  <button class="good-btn" onclick="chooseMode('players')">Players</button>
+</div>
+
+<!-- Players Placeholder Screen -->
+<div class="card" id="playersScreen" style="display:none;">
+  <div class="player" id="player">Loading...</div>
+  <div id="playerButtons"></div>
+</div>
+
 <!-- Flashcard Screen -->
 <div class="card" id="flashcardScreen" style="display:none;">
   <div class="question" id="question">Loading...</div>
@@ -75,10 +88,13 @@ button {
   const VALUE = "U2FsdGVkX19nRQB6H3eF11M/3ZGcpmUMQV+Ii62f0pM0qSJpZmI/0XLBQrL5uurhe2/yvpqKDX9v3biAGfFStCCRX4b5x50Hn+aOL3o5728VQHCRZyAj/6wdLwbs6C/XPQLb3wPc8jP8gfYS7KCb1aWAWoe3njBdl85RGTiHgAhNOO/XMeEI+r0RpA0WA4A1Wkq1bng+EPuu9rAg1S7ytQ==";
 
   let queue = [];
+  let players = [];
   let currentCard = null;
+  let currentPlayer = null;
 
   function loadTimings() {
-    return JSON.parse(localStorage.getItem("flashcardTimings") || "{}");
+    const timings = JSON.parse(localStorage.getItem("flashcardTimings") || "{}");
+    return timings;
   }
 
   function saveTimingLocally(cardId, lastReviewed, nextReview) {
@@ -124,6 +140,92 @@ button {
     });
   }
 
+  function playerToHtml(player) {
+    return `
+          <table style="margin:0 auto; width:100%; border-collapse:collapse;">
+            <tr>
+              <td colspan="2">
+                <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/${currentPlayer.player_id}.png" alt="Player Image" style="max-width:120px; border-radius:8px;" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">${currentPlayer.player || ""} (${currentPlayer.team || ""})</td>
+            </tr>
+            <tr>
+              <td colspan="2">${currentPlayer.age || "?"} (${currentPlayer.yos || ""} YOS) / ${currentPlayer.pos || "Pos"} / ${currentPlayer.height_no_shoes || "HT"}</td>
+            </tr>
+            <tr>
+              <td colspan="2">${currentPlayer.agency_name || "No Agency"}</td>
+            </tr>
+            <tr>
+              <td colspan="2">${currentPlayer.agents || "No Agent"}</td>
+            </tr>
+            <tr>
+              <td colspan="2">Draft: ${currentPlayer.draft_year || ""} / ${currentPlayer.draft_pick || "Undrafted"}</td>
+            </tr>
+            <tr>
+              <td colspan="2">Contract: ${currentPlayer.contract || currentPlayer.contract_type_2025 || "Missing"}</td>
+            </tr>
+            ${currentPlayer.cap_amount_2025 !== "" ? `<tr>
+              <td colspan="2">2025-26 Salary: ${currentPlayer.cap_amount_2025} (${currentPlayer.contract_type_2025 || ""})</td>
+            </tr>` : ""}
+            ${currentPlayer.cap_amount_2026 !== "" ? `<tr>
+              <td colspan="2">2026-27 Salary: ${currentPlayer.cap_amount_2026} (${currentPlayer.contract_type_2026 || ""})</td>
+            </tr>` : ""}
+            ${currentPlayer.cap_amount_2027 !== "" ? `<tr>
+              <td colspan="2">2027-28 Salary: ${currentPlayer.cap_amount_2027} (${currentPlayer.contract_type_2027 || ""})</td>
+            </tr>` : ""}
+            ${currentPlayer.cap_amount_2028 !== "" ? `<tr>
+              <td colspan="2">2028-29 Salary: ${currentPlayer.cap_amount_2028} (${currentPlayer.contract_type_2028 || ""})</td>
+            </tr>` : ""}
+            ${currentPlayer.cap_amount_2029 !== "" ? `<tr>
+              <td colspan="2">2029-30 Salary: ${currentPlayer.cap_amount_2029} (${currentPlayer.contract_type_2029 || ""})</td>
+            </tr>` : ""}
+            ${currentPlayer.cap_amount_2030 !== "" ? `<tr>
+              <td colspan="2">2030-31 Salary: ${currentPlayer.cap_amount_2030} (${currentPlayer.contract_type_2030 || ""})</td>
+            </tr>` : ""}
+          </table>
+          `;
+  }
+
+  function loadPlayers(url) {
+    Papa.parse(url, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        const timings = loadTimings();
+        players = results.data;
+
+        players = players.map(player => {
+          Object.keys(player).forEach(key => {
+            if (player[key] === "NA") player[key] = "";
+          });
+          return player;
+        });
+
+        if (players.length > 0) {
+          currentPlayer = players[Math.floor(Math.random() * players.length)];
+          const tableHtml = playerToHtml(currentPlayer);
+          
+          document.getElementById('player').innerHTML = tableHtml;
+          document.getElementById('playerButtons').innerHTML = `
+            <button class="ignore-btn" onclick="ratePlayer('ignore')">Ignore</button>
+            <button class="again-btn" onclick="ratePlayer('again')">Again</button>
+            <button class="hard-btn" onclick="ratePlayer('hard')">Hard</button>
+            <button class="good-btn" onclick="ratePlayer('good')">Good</button>
+            <button class="easy-btn" onclick="ratePlayer('easy')">Easy</button>
+          `;
+        } else {
+          document.getElementById('player').textContent = "No players found.";
+        }
+      }, 
+      error: function(err) {
+        document.getElementById('player').textContent = "Error loading data.";
+        console.error(err);
+      }
+    });
+  }
+
   function nextCard() {
     if (queue.length === 0) {
       document.getElementById('question').textContent = "You're done!";
@@ -136,6 +238,16 @@ button {
     document.getElementById('answer').style.display = 'none';
     document.getElementById('buttons').innerHTML =
       '<button class="show-btn" onclick="showAnswer()">Show Answer</button>';
+  }
+
+  function nextPlayer() {
+    if (queue.length === 0) {
+      document.getElementById('player').textContent = "You're done!";
+      document.getElementById('playerButtons').textContent = '';
+      return;
+    }
+    currentPlayer = players.shift();
+    document.getElementById('player').innerHTML = playerToHtml(currentPlayer);
   }
 
   function showAnswer() {
@@ -181,20 +293,15 @@ button {
 
     if (rating == 'ignore') {
       nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
-      // queue.splice(1, 0, currentCard); 
     } else if (rating === 'again') {
-      // nextReview = new Date(Date.now() + 1 * 1000).toISOString();
       queue.splice(1, 0, currentCard);
       resortCards = false;
     } else if (rating === 'hard') {
       nextReview = new Date(Date.now() + 4 * 60 * 1000).toISOString();
-      // queue.splice(3, 0, currentCard);
     } else if (rating === 'good') {
       nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      // queue.splice(queue.length - 1, 0, currentCard);
     } else {
       nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      // queue.splice(queue.length - 1, 0, currentCard);
     }
 
     saveTimingLocally(currentCard.id, now, nextReview);
@@ -204,6 +311,31 @@ button {
     nextCard();
   }
 
+  function ratePlayer(rating) {
+    const now = new Date().toISOString();
+    let resortPlayers = true;
+    let nextReview;
+
+    if (rating == 'ignore') {
+      nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
+    } else if (rating === 'again') {
+      players.splice(1, 0, currentPlayer);
+      resortPlayers = false;
+    } else if (rating === 'hard') {
+      nextReview = new Date(Date.now() + 4 * 60 * 1000).toISOString();
+    } else if (rating === 'good') {
+      nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    } else {
+      nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    saveTimingLocally('Player:' + currentPlayer.player_id, now, nextReview);
+    if (resortPlayers) {
+      players = sortByNextReview(players, loadTimings());
+    }
+    nextPlayer();
+  }
+
   function checkPassword() {
     const entered = document.getElementById('passwordInput').value;
     const bytes = CryptoJS.AES.decrypt(VALUE, entered);
@@ -211,12 +343,25 @@ button {
 
     if (url.includes("google")) {
       document.getElementById('passwordScreen').style.display = 'none';
-      document.getElementById('flashcardScreen').style.display = 'block';
+      document.getElementById('choiceScreen').style.display = 'block';
+      window.flashcardUrl = url;
       loadCards(url);
     } else {
       document.getElementById('errorMsg').style.display = 'block';
     }
   }
+
+  function chooseMode(mode) {
+    document.getElementById('choiceScreen').style.display = 'none';
+    if (mode === 'questions') {
+      document.getElementById('flashcardScreen').style.display = 'block';
+      loadCards(window.flashcardUrl + '&gid=0');
+    } else {
+      document.getElementById('playersScreen').style.display = 'block';
+      loadPlayers(window.flashcardUrl + '&gid=311658593');
+    }
+  }
 </script>
+
 </body>
 </html>
