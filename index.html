@@ -66,8 +66,18 @@ button {
 <!-- Choice Screen -->
 <div class="card" id="choiceScreen" style="display:none;">
   <h2>Choose Mode</h2>
-  <button class="show-btn" onclick="chooseMode('questions')">Questions</button>
-  <button class="good-btn" onclick="chooseMode('players')">Players</button>
+  <button class="show-btn" onclick="chooseMode('questions', null)">Questions</button>
+  <div style="margin: 16px 0;"></div>
+    <label for="teamSelect" style="font-weight:bold; margin-right:8px;">Team:</label>
+    <select id="teamSelect" style="padding:6px 12px; font-size:1em;">
+      <option value="ATL">ATL</option>
+      <option value="BOS">BOS</option>
+      <option value="BKN">BKN</option>
+      <option value="OKC">OKC</option>
+      <option value="SAC" selected>SAC</option>
+    </select>
+    <button class="good-btn" onclick="chooseMode('players', document.getElementById('teamSelect').value)">Player by Team</button>
+  </div>
 </div>
 
 <!-- Players Placeholder Screen -->
@@ -111,7 +121,7 @@ button {
     });
   }
 
-  function loadCards(url) {
+  function loadQuestionCards(url) {
     Papa.parse(url, {
       download: true,
       header: true,
@@ -128,7 +138,7 @@ button {
         queue = sortByNextReview(queue, timings);
 
         if (queue.length > 0) {
-          nextCard();
+          nextQuestionCard();
         } else {
           document.getElementById('question').textContent = "No cards found.";
         }
@@ -188,7 +198,7 @@ button {
           `;
   }
 
-  function loadPlayers(url) {
+  function loadPlayerCards(url, team) {
     Papa.parse(url, {
       download: true,
       header: true,
@@ -203,17 +213,21 @@ button {
           return player;
         });
 
+        if (team) {
+          players = players.filter(player => player.team === team);
+        }
+
         if (players.length > 0) {
           currentPlayer = players[Math.floor(Math.random() * players.length)];
           const tableHtml = playerToHtml(currentPlayer);
           
           document.getElementById('player').innerHTML = tableHtml;
           document.getElementById('playerButtons').innerHTML = `
-            <button class="ignore-btn" onclick="ratePlayer('ignore')">Ignore</button>
-            <button class="again-btn" onclick="ratePlayer('again')">Again</button>
-            <button class="hard-btn" onclick="ratePlayer('hard')">Hard</button>
-            <button class="good-btn" onclick="ratePlayer('good')">Good</button>
-            <button class="easy-btn" onclick="ratePlayer('easy')">Easy</button>
+            <button class="ignore-btn" onclick="ratePlayerCard('ignore')">Ignore</button>
+            <button class="again-btn" onclick="ratePlayerCard('again')">Again</button>
+            <button class="hard-btn" onclick="ratePlayerCard('hard')">Hard</button>
+            <button class="good-btn" onclick="ratePlayerCard('good')">Good</button>
+            <button class="easy-btn" onclick="ratePlayerCard('easy')">Easy</button>
           `;
         } else {
           document.getElementById('player').textContent = "No players found.";
@@ -226,7 +240,7 @@ button {
     });
   }
 
-  function nextCard() {
+  function nextQuestionCard() {
     if (queue.length === 0) {
       document.getElementById('question').textContent = "You're done!";
       document.getElementById('answer').style.display = 'none';
@@ -240,7 +254,7 @@ button {
       '<button class="show-btn" onclick="showAnswer()" style="block">Show Answer</button>';
   }
 
-  function nextPlayer() {
+  function nextPlayerCard() {
     if (queue.length === 0) {
       document.getElementById('player').textContent = "You're done!";
       document.getElementById('playerButtons').textContent = '';
@@ -278,15 +292,15 @@ button {
     answerDiv.style.display = 'block';
 
     document.getElementById('buttons').innerHTML = `
-      <button class="ignore-btn" onclick="rateCard('ignore')">Ignore</button>
-      <button class="again-btn" onclick="rateCard('again')">Again</button>
-      <button class="hard-btn" onclick="rateCard('hard')">Hard</button>
-      <button class="good-btn" onclick="rateCard('good')">Good</button>
-      <button class="easy-btn" onclick="rateCard('easy')">Easy</button>
+      <button class="ignore-btn" onclick="rateQuestionCard('ignore')">Ignore</button>
+      <button class="again-btn" onclick="rateQuestionCard('again')">Again</button>
+      <button class="hard-btn" onclick="rateQuestionCard('hard')">Hard</button>
+      <button class="good-btn" onclick="rateQuestionCard('good')">Good</button>
+      <button class="easy-btn" onclick="rateQuestionCard('easy')">Easy</button>
     `;
   }
 
-  function rateCard(rating) {
+  function rateQuestionCard(rating) {
     const now = new Date().toISOString();
     let resortCards = true;
     let nextReview;
@@ -308,10 +322,10 @@ button {
     if (resortCards) {
       queue = sortByNextReview(queue, loadTimings());
     }
-    nextCard();
+    nextQuestionCard();
   }
 
-  function ratePlayer(rating) {
+  function ratePlayerCard(rating) {
     const now = new Date().toISOString();
     let resortPlayers = true;
     let nextReview;
@@ -333,7 +347,7 @@ button {
     if (resortPlayers) {
       players = sortByNextReview(players, loadTimings());
     }
-    nextPlayer();
+    nextPlayerCard();
   }
 
   function checkPassword() {
@@ -345,20 +359,20 @@ button {
       document.getElementById('passwordScreen').style.display = 'none';
       document.getElementById('choiceScreen').style.display = 'block';
       window.flashcardUrl = url;
-      loadCards(url);
+      loadQuestionCards(url);
     } else {
       document.getElementById('errorMsg').style.display = 'block';
     }
   }
 
-  function chooseMode(mode) {
+  function chooseMode(mode, team) {
     document.getElementById('choiceScreen').style.display = 'none';
     if (mode === 'questions') {
       document.getElementById('flashcardScreen').style.display = 'block';
-      loadCards(window.flashcardUrl + '&gid=0');
+      loadQuestionCards(window.flashcardUrl + '&gid=0');
     } else {
       document.getElementById('playersScreen').style.display = 'block';
-      loadPlayers(window.flashcardUrl + '&gid=311658593');
+      loadPlayerCards(window.flashcardUrl + '&gid=311658593', team);
     }
   }
 </script>
