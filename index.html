@@ -364,7 +364,10 @@ button {
     if (rating == 'ignore') {
       nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000 + rand).toISOString();
     } else if (rating === 'again') {
+      console.log('-----------------------');
+      console.log(players.length);
       players.splice(1, 0, currentPlayer);
+      console.log(players.length);
       resortPlayers = false;
     } else if (rating === 'hard') {
       nextReview = new Date(Date.now() + 4 * 60 * 1000 + rand).toISOString();
@@ -375,9 +378,13 @@ button {
     }
 
     saveTimingLocally('Player:' + currentPlayer.player_id, now, nextReview);
+    console.log('-----------------------');
+    console.log(players.length);
     if (resortPlayers) {
       players = sortByNextReview(players, loadTimings());
     }
+    console.log(players.length);
+
     nextPlayerCard();
   }
 
