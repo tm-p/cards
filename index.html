@@ -160,6 +160,7 @@ button {
             a: row.answer
           }));
 
+        console.log("Qusetion Timings Loaded:", timings);
         queue = sortByNextReview(queue, timings);
 
         if (queue.length > 0) {
