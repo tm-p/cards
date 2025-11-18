@@ -243,6 +243,9 @@ button {
           players = players.filter(player => player.team === team);
         }
 
+        console.log("Player Timings Loaded:", timings);
+        players = sortByNextReview(players, loadTimings());
+
         if (players.length > 0) {
           currentPlayer = players[Math.floor(Math.random() * players.length)];
           const tableHtml = playerToHtml(currentPlayer);
@@ -330,18 +333,19 @@ button {
     const now = new Date().toISOString();
     let resortCards = true;
     let nextReview;
+    const rand = 3 * 60 * Math.floor(Math.random() * 1000);
 
     if (rating == 'ignore') {
-      nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000 + rand).toISOString();
     } else if (rating === 'again') {
       queue.splice(1, 0, currentCard);
       resortCards = false;
     } else if (rating === 'hard') {
-      nextReview = new Date(Date.now() + 4 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 4 * 60 * 1000 + rand).toISOString();
     } else if (rating === 'good') {
-      nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000 + rand).toISOString();
     } else {
-      nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + rand).toISOString();
     }
 
     saveTimingLocally(currentCard.id, now, nextReview);
@@ -355,18 +359,19 @@ button {
     const now = new Date().toISOString();
     let resortPlayers = true;
     let nextReview;
+    const rand = 3 * 60 * Math.floor(Math.random() * 1000);
 
     if (rating == 'ignore') {
-      nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 1 * 60 * 60 * 1000 + rand).toISOString();
     } else if (rating === 'again') {
       players.splice(1, 0, currentPlayer);
       resortPlayers = false;
     } else if (rating === 'hard') {
-      nextReview = new Date(Date.now() + 4 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 4 * 60 * 1000 + rand).toISOString();
     } else if (rating === 'good') {
-      nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 24 * 60 * 60 * 1000 + rand).toISOString();
     } else {
-      nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      nextReview = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + rand).toISOString();
     }
 
     saveTimingLocally('Player:' + currentPlayer.player_id, now, nextReview);
