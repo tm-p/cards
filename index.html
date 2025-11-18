@@ -277,6 +277,8 @@ button {
       return;
     }
     currentCard = queue.shift();
+    // Re-add current card to the end of the queue to allow cycling
+    queue.push(currentCard);
     document.getElementById('question').textContent = currentCard.q;
     document.getElementById('answer').style.display = 'none';
     document.getElementById('buttons').innerHTML =
