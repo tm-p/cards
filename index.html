@@ -290,6 +290,8 @@ button {
       return;
     }
     currentPlayer = players.shift();
+    // Re-add current player to the end of the list to allow cycling
+    players.push(currentPlayer);
     document.getElementById('player').innerHTML = playerToHtml(currentPlayer);
   }
 
